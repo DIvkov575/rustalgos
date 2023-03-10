@@ -1,19 +1,10 @@
-use std::collections::HashMap;
-use std::fmt::Debug;
-use std::io::Result;
-
-static mut COUNTER: i8 = 0;
-#[derive(Debug, Copy, Clone)]
-struct E {
-    weight: i32,
-    node: i32,
-}
+use std::collections::{BinaryHeap, HashMap};
+include!("E.rs");
 
 fn main() {
-    #[allow(non_snake_case)]
-    let mut V: [i32; 6] = [-1; 6];
-    #[allow(non_snake_case)]
-    let W = HashMap::from([
+    let mut mass_distances: [i32; 6] = [-1; 6];
+    let mut queue = BinaryHeap::<E>::new();
+    let input_graph = HashMap::from([
         (
             0,
             Vec::from([E { node: 1, weight: 4 }, E { node: 2, weight: 3 }]),
@@ -27,32 +18,32 @@ fn main() {
         (4, Vec::from([])),
         (5, Vec::from([])),
     ]);
+    // creates starting node
     let start = 0;
-    V[start] = 0;
-    #[allow(non_snake_case)]
-    let mut Q = Vec::<E>::new();
+    mass_distances[start] = 0;
 
-    dij(start as i32, &mut V, W, &mut Q);
-    println!("V: {:#?}", V);
+    // beep boop
+    dijkstra(start as i32, &mut mass_distances, input_graph, &mut queue);
+    println!("V: {:#?}", mass_distances);
 }
 
-#[allow(non_snake_case)]
-fn dij(start: i32, V: &mut [i32; 6], W: HashMap<i32, Vec<E>>, Q: &mut Vec<E>) {
-    // finds minimum weight edge -> sets Value & index
-    Q.extend(W.get(&start).unwrap().clone());
+fn dijkstra(
+    current_node: i32,
+    mass_distances: &mut [i32; 6],
+    input_graph: HashMap<i32, Vec<E>>,
+    queue: &mut BinaryHeap<E>,
+) {
+    // add new nodes into queue
+    for elem in input_graph.get(&current_node).unwrap().iter() {
+        queue.push(*elem);
+    }
 
-    // ends program if queue empty (all nodes visited)
-    if Q.len() == 0 {
+    if queue.len() == 0 {
         return;
     }
 
-    // select next node
-    let mut min_edge = Q[0];
-    for (i, edge) in Q.iter().enumerate() {
-        if edge.weight < min_edge.weight {
-            min_edge = Q[i];
-        }
-    }
+    // select next node (min edge)
+    let min_edge: E = queue.pop().unwrap().clone();
 
     // -1 signifies end node
     if min_edge.node == -1 {
@@ -60,15 +51,17 @@ fn dij(start: i32, V: &mut [i32; 6], W: HashMap<i32, Vec<E>>, Q: &mut Vec<E>) {
     }
     // checks if next node is infinte distance away -> sets value
     // checks if less than existing distance -> sets value
-    if V[min_edge.node as usize] == -1 {
-        V[min_edge.node as usize] = V[start as usize] + min_edge.weight;
+    if mass_distances[min_edge.node as usize] == -1 {
+        mass_distances[min_edge.node as usize] =
+            mass_distances[current_node as usize] + min_edge.weight;
     } else {
-        if V[min_edge.node as usize] > V[start as usize] + min_edge.weight {
-            V[min_edge.node as usize] = V[start as usize] + min_edge.weight;
+        if mass_distances[min_edge.node as usize]
+            > mass_distances[current_node as usize] + min_edge.weight
+        {
+            mass_distances[min_edge.node as usize] =
+                mass_distances[current_node as usize] + min_edge.weight;
         }
     }
-    // remove visited node
-    Q.remove(Q.iter().position(|x| x.node == min_edge.node).unwrap());
 
-    dij(min_edge.node, V, W, Q);
+    dijkstra(min_edge.node, mass_distances, input_graph, queue);
 }
